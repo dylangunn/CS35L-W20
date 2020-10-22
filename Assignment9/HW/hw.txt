@@ -1,0 +1,40 @@
+Generate key-pair: gpg --gen-key. Do all the things until done, need to generate entropy. Open another window, do:
+    "find / > /dev/null". Then allow generation to start.
+Export public key: Need it to be ASCII format, so use:
+    gpg --armor --export dylankgunn@gmail.com > hw-pubkey.asc
+    --armor makes the file use ASCII-armored format rather than binary.
+    To use detached signature:
+    gpg --output hw-pubkey.sig --detach-sig hw-pubkey.asc
+    In this case, I signed my hw-pubkey.asc with itself.
+    Verify signature:
+    gpg --verify hw-pubkey.sig hw-pubkey.asc
+
+Says: Good signature from "dylan <dylankgunn@gmail.com>"
+
+1. If an outside user could see every byte sent and recieved, they would not be
+able to know anything. SSH encryption would still prevent my work from being
+compromised.
+
+If they had access to my keyboard, they would know my password because I have to
+enter it to sign on, but they wouldn't have my username because I have it saved
+in Putty. If this is after password-free authentication, they wouldn't have access at all.
+If I've set up password-free but not passphrase-free authentication, and they
+have access to my username, they can use that information to get my private key.
+If I haven't set up anything and enter with my username and password, they can
+do the same and view my private key if I didn't encrypt it.
+
+If they could view my ssh files, which aren't passphrase protected or encrypted,
+They could see my private key, meaning they could use all of the above information
+To appear to be me. If I did encrypt it, I would be okay as long as they had
+no access to my passphrase.
+
+2. The issue here is that verify only checks to see if the detached signature
+matches the target file but can't see who wrote the key besides public key
+or if the original file was modified.
+Therefore, it would be better to also have my public key available with the
+file so they can verify any changes were done by me.
+To add security, it would be better to use a 3rd party that can keep track
+of both the detached signature AND its owner's private key. That way, anybody 
+could test files distrubuted with the use of this secure 3rd party. They would
+be able to make sure I was the one that created the file and whether or not it
+has been modified.

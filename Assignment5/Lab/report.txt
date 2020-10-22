@@ -1,0 +1,100 @@
+--lab.txt--
+1/2. I wrote the programs and compiled both with:
+"gcc tr2_.c -o tr2_", where _ is b or u.
+
+3. strace:
+For tr2_, one file to another, where "_" is u or b:
+"strace -o strace_.txt ./tr2_ 'a' 'b' < input.txt > output.txt"
+For tr2_, one file to terminal:
+"strace -o strace_terminal.txt ./tr2_ 'a' 'b' < input.txt"
+
+By looking into my strace files, I can see that when I ran it from one file to another, 
+the unbuffered version tended to do things one character/byte at a time and had many 
+many more system calls as a result. On the other hand, my buffered version would do
+its read and write actions in bunches of 8192 bytes, making it much more efficient and faster.
+
+When it ran to terminal, the same was observed. In fact, I could clearly see the
+unbuffered version run much more slowly, as b's flew across the screen filling up
+line after line. In this case, looking at my strace file showed me something slightly
+different; for the buffered version, it would read in 8192 bytes again, but would
+only write in 8 sets of 1024. This is still much more efficient than the unbuffered
+version, which once again wrote each byte one at a time.
+
+4. Time Difference:
+using "time -p ./tr2_ 'a' 'b' < input.txt > /dev/null" showed me how long it would take
+for each to run. For my buffered:
+real 0.22
+user 0.21
+sys 0.00
+
+For my unbuffered:
+real 8.37
+user 3.38
+sys 4.98
+
+Clearly, there is a huge difference in time and efficiency between the programs.
+-------------------------------------------------------------------------------------
+HOMEWORK:
+
+I copied and pasted random gibberish I wrote into different files until I got the number
+of lines that I desired. I then ran the time ./sfrob(u) < file > /dev/null to get times.
+CPU times can be found by adding the user and sys times, which I use to derive a function.
+
+0 lines:
+sfrob:
+real 0m0.003s
+user 0m0.002s
+sys  0m0.000s
+
+sfrobu:
+real 0m0.002s
+user 0m0.002s
+sys  0m0.000s
+
+
+100 lines:
+sfrob:
+real 0m0.004s
+user 0m0.002s
+sys  0m0.002s
+
+sfrobu:
+real 0m0.009s
+user 0m0.002s
+sys  0m0.006s
+
+10000 lines:
+sfrob:
+real 0m0.048s
+user 0m0.045s
+sys  0m0.002s
+
+sfrobu:
+real 0m0.468
+user 0m0.261
+sys 0m0.206
+
+
+1000000 lines:
+sfrob:
+real 0m0.835s
+user 0m0.805s
+sys  0m0.030s
+
+sfrobu:
+real 0m2.958s
+user 0m1.826s
+sys  0m1.131s
+
+
+Solving for functions time(n) and timeu(n), where n is number of lines, I get:
+Using linear regression:
+time(n) = 8.2*10^(-7)n + 0.015
+timeu(n) = 2.8*10^(-6)n + 0.15
+
+Because this was a linear regression it won't be very precise. However, what can still
+be concluded is that each line sfrobu takes in is much more impactful to the CPU time.
+
+After searching through, it appears we would have had to use the mmap() function.
+Using strace, it looks like this when called:
+mmap(NULL, 3985888, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7feb622b5000

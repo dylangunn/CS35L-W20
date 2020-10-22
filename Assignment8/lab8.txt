@@ -1,0 +1,78 @@
+1. cd into ~eggert/src/gnu/emacs-CS-35L
+    Disk space to represent working files: "du -h" in directory.
+    159M returned.
+
+How much used to represent Git repo: "du -sh .git" in directory to get just
+    sum of all files. Total of 350M.
+
+What file(s) consume most of repo space, why: "du -a . | sort -nr | head -n 1    0"
+    to print the 10 largest files. Appears to be:
+    ./.git/objects/pack/pack-24e56b1749b9320c560213d9045fa6cee42b4174.pack at
+    311 MB. If we include the entire "pack" folder, it's 335 MB.
+
+2. Number branches local to the repo: "git branch" lists all, pipe output to
+    wordcount with "git branch | wc -l". 176 branches.
+
+Number remote: "git branch -r | wc -l". 177 branches.
+
+3. How many repos remote to this directory: "git remote" lists only origin.
+
+4. 10 most recently committed branches? "git for-each-ref --sort=-committerda    te --count=10 --format="ref=%(refname)" refs/heads"
+
+ref=refs/heads/master
+ref=refs/heads/scratch/joaot/make-completion-at-point-function
+ref=refs/heads/feature/windows-with-utils
+refs/heads/scratch/completion-api
+ref=refs/heads/scratch/a-modest-completion-redesign-proposal
+ref=refs/heads/scratch/fido-mode
+ref=refs/heads/feature/gnus-select2
+ref=refs/heads/feature/extend_face_id
+ref=refs/heads/scratch/jit-lock-antiblink-cleaned-up
+ref=refs/heads/emacs-26
+
+5. Number commits in master branch: "git rev-list --count master"
+    139583
+
+6. % commits in any branch are also in master: "git rev-list --count --all"
+    139583/143910 = .9699
+
+7. Top 10 authors of master-branch in 2013 or later, how many commits each?
+"git shortlog -sn --since="31 Dec 2012"" bc "since" shows commits more recent     than a specific date.
+Top 10:
+  3692  Eli Zaretskii
+  3655  Glenn Morris
+  3606  Paul Eggert
+  1806  Lars Ingebrigtsen
+  1784  Stefan Monnier
+  1571  Michael Albinus
+   619  Dmitry Gutov
+   576  Noam Postavsky
+   471  Alan Mackenzie
+   469  Juri Linkov
+
+8. After about 900 years of struggle to get X11 forwarding to work, I caught
+a stupid mistake and it finally worked.
+
+Process:
+Install Xming, run as Admin,  Allow forwarding in Putty, set display to
+    localhost:0.0, export DISPLAY=localhost:0.0, go to git directory, run gitk.
+Then, I searched for each SHA1 ID that was given and get this show
+on the road. 
+
+4ea37
+|     \
+977cd  625ce...
+...            \
+0c06b----...----5490c...
+|                      |
+|                      820739
+...                         |
+|                           00e4e...
+|                                  |
+abcb2------------------------------49cd5...
+...                                       |
+98ac3------------------------------------/ 
+
+It looks like a boat.
+Elipses means something(s) between, no elipses means direct
+    parent/child relationship

@@ -1,0 +1,112 @@
+No issues when using "./configure --prefix=(...)". When running "make", I get
+an error stating there are "conflicting types for 'futimens'".
+
+I install the patch by using "patch < coreutils.diff -p0". Running "make"
+again passes. This is because it replaces an undefined "futimens" and "tee"
+with "coreutils_futimens" and "coreutils_tee", which do in fact exist. Running
+"make install" is successful and i have no further problems.
+
+I then used the code given by the assignment to create a script "testls" that runs
+both the regular ls and the broken ls in my buggy coreutils:
+
+#!/bin/bash
+tmp=$(mktemp -d)
+cd $tmp
+touch -d '1918-11-11 11:00 GMT' wwi-armistice-cs35L
+touch now
+sleep 1
+touch now1
+TZ=UTC0 ls -lt --full-time wwi-armistice-cs35L now now1
+echo ""
+TZ=UTC0 $testls -lt --full-time wwi-armistice-cs35L now now1
+cd
+rm -fr $tmp
+
+After giving it execute permissions (chmod 777 testls) I can finally see my
+issue when running ./testls: The output is the following:
+
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 22:45:13.020572308 +0000 now1
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 22:45:12.014541507 +0000 now
+-rw-r--r-- 1 gunnd beugrad 0 1918-11-11 11:00:00.000000000 +0000 
+    wwi-armistice-cs35L
+
+-rw-r--r-- 1 gunnd beugrad 0 1918-11-11 11:00:00.000000000 +0000 
+    wwi-armistice-cs35L
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 22:45:13.020572308 +0000 now1
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 22:45:12.014541507 +0000 now
+
+The first 3 are the regular ls: in this case, everything prints in order of age.
+In the second set, however, the file marked 1918 is coming after the 2020
+files. This is obviously incorrect.
+
+My first step is to dive into "coreutils-with-bug/src/ls.c," where I see that
+-t is sorted with "sort_time".  Looking at mtime for modification time, we see
+that it calls compare_mtime.
+
+I use "gdb $HOME/Documents/CS35L/Assignment4/coreutils-bug/bin/ls" to open
+the gdb debugger and run "info functions compare_mtime" to see that it takes
+the form "static int compare_mtime(V, V);". Adding a breakpoint in at this
+point with "break compare_mtime", then running the program with arguments -lt
+and stepping in with stepi, I see that this runs "cmp_mtime". By stepping
+into this, I find it's in timespec.h in the lib directory. 
+
+Opening this file, I see that order is calculated by subtracting the two times
+of the files and then returning that value. If negative, time B comes later.
+If positive, time A comes later. If 0, the time stamps are equal. However,
+when subtracting two times so far apart, the overflow causes the value to
+become positive and show (1918) - (2020) = positive. Therefore, 1918 comes
+after 2020. To fix this, I tried using the logic in the comment itself: I used
+<, ==, and >. The implementation looks like this:
+
+static inline int
+timespec_cmp (struct timespec a, struct timespec b)
+{
+  if (a.tv_sec > b.tv_sec)
+    return 10;
+  else if (a.tv_sec < b.tv_sec)
+    return -10;
+  else
+    return 0;
+}
+
+(I used 10 and -10 because I couldn't figure out why it wouldn't work with 1/-1,
+ then realized I just hadn't used "make" yet)
+I used "make" one more time, ran my script, and it worked! Output is as follows:
+
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 23:40:54.835906390 +0000 now1
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 23:40:53.833875703 +0000 now
+-rw-r--r-- 1 gunnd beugrad 0 1918-11-11 11:00:00.000000000 +0000 
+    wwi-armistice-cs35L
+
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 23:40:54.835906390 +0000 now1
+-rw-r--r-- 1 gunnd beugrad 0 2020-02-08 23:40:53.833875703 +0000 now
+-rw-r--r-- 1 gunnd beugrad 0 1918-11-11 11:00:00.000000000 +0000 
+    wwi-armistice-cs35L
+
+Therefore, the bug is patched.
+
+Next, I need to make a diff file. To do this, I restore the changes I made
+to the timespec.h file (good thing I only commented out the bad code) in
+timespecBAD.h. Finally, I run "diff -u timespecBAD.h timespec.h > lab4.diff".
+This is what I got:
+
+--- timespecBAD.h   2020-02-09 16:12:27.047482000 -0800
++++ timespec.h  2020-02-09 15:34:51.692338000 -0800
+@@ -45,8 +45,14 @@
+ static inline int
+ timespec_cmp (struct timespec a, struct timespec b)
+ {
+-  int diff = a.tv_sec - b.tv_sec;
+-  return diff ? diff : a.tv_nsec - b.tv_nsec;
++  if (a.tv_sec > b.tv_sec)
++    return (10);
++  else if (a.tv_sec < b.tv_sec)
++    return (-10);
++  else
++    return (0);
++  /*int diff = a.tv_sec - b.tv_sec;
++  return diff ? diff : a.tv_nsec - b.tv_nsec;*/
+ }
+ # if ! HAVE_DECL_NANOSLEEP
+
+And all I do is create a changelog and I'm done!

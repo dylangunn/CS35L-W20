@@ -1,0 +1,7 @@
+#!/usr/local/cs/bin/bash
+
+for i in $(ls /usr/bin | awk '(NR-805112866)%251 == 0'); do
+    ldd '/usr/bin/'$i | sed -r "s#^[[:space:]]+([^ ]+).*#\1#g" >> list.txt
+done
+
+sort -u list.txt

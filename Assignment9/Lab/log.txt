@@ -1,0 +1,14 @@
+In server 7, ssh-keygen. Generates priv and pub key. Used a pass to encrypt.
+Use ssh-copy-id -i gunnd@lnxsrv06.seas.ucla.edu, enter pass, now public key stored for challenges.
+From 7, "ssh gunnd@lnxsrv06.seas.ucla.edu". Now, don't have to enter pass to ssh.
+Can go into lnxsrv07 and ssh into lnxsrv06 without worrying about entering password. However, asks for passphrase!
+If private key is encrypted with password, can't use it during challenge.
+To fix this, use ssh-agent.
+Run "eval $(ssh-agent)" to run an ssh-agent
+Then: "ssh-add", says identity added.
+Now, am able to ssh from server 7 into any other server.
+To use them with X11, do "ssh -X lnxsrv##.seas.ucla.edu". Can now run X.
+Test with xclock, works!
+To daisy chain, do "ssh -A -t lnxsrv06.seas.ucla.edu ssh -A -t lnxsrv03.seas.ucla.edu"
+    This works because -A enables agent forwarding and -t forces a psuedo-tty to be allocated, which allows an interactive shell session.
+    This also makes it so if I log out while in 03, I will return to 07 rather than 06.
